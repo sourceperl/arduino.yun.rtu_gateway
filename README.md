@@ -9,16 +9,34 @@ Arduino Yun gateway between RTU and LPWAN network
     # add sftp-server and python tool easy_install
     opkg update
     opkg install openssh-sftp-server
-    opkg install distribute
-    opkg install pyserial
     # download python package
     wget https://files.pythonhosted.org/packages/86/2f/dba4265b4072116350051f76fc57fe22b1fb24ee253ba581cd18f35038e6/pyModbusTCP-0.1.8.tar.gz --no-check-certificate
     wget https://files.pythonhosted.org/packages/fd/31/599a3387c2e98c270d5ac21a1575f3eb60a3712c192a0ca97a494a207739/schedule-0.5.0.tar.gz --no-check-certificate
+
+
+    # for yun rev1
+    opkg install distribute
     # install python package
+    opkg install pyserial
     easy_install pyModbusTCP-0.1.8.tar.gz
     easy_install schedule-0.5.0.tar.gz
     # clean
     rm pyModbusTCP-0.1.8.tar.gz schedule-0.5.0.tar.gz
+
+
+    # for yun rev2
+    opkg install python-setuptools
+    opkg install python-pyserial
+    tar xvzf pyModbusTCP-0.1.8.tar.gz
+    tar xvzf schedule-0.5.0.tar.gz
+    # install python package
+    cd /root/pyModbusTCP-0.1.8
+    python setup.py install
+    cd /root/schedule-0.5.0
+    python setup.py install
+    # clean
+    cd /root
+    rm -rf pyModbusTCP-0.1.8* schedule-0.5.0*
 
 
 ### Setup on Yun arduino web panel
@@ -57,9 +75,14 @@ In System > Startup part "Local Startup", update rc.local content like this :
 
 ### Copy/Update files
 
-Connect a remote directory to sftp://root@arduino.local/
-Copy modbus2sigfox.py to /root/modbus2sigfox.py then do a "chmod +x modbus2sigfox.py"
+- Connect a remote directory to sftp://root@arduino.local/
 
-Disable OpenWRT shell on /dev/ttyATH0 bridge (Serial1 ATMega 32U4)
-Edit file /etc/inittab and add a comment "#" before line ttyATH0::askfirst:/bin/ash --login
+  - Copy modbus2sigfox.py to /root/modbus2sigfox.py then do a "chmod +x modbus2sigfox.py"
+
+- Disable OpenWRT shell on /dev/ttyATH0 serial bridge (on ATMega 32U4 serial name is Serial1)
+
+  - Yun Rev1: Edit file /etc/inittab and add a comment "#" before line ttyATH0::askfirst:/bin/ash --login
+
+  - Yun Rev2: Edit file /etc/inittab and add a comment "#" before line #::askconsole:/usr/libexec/login.sh
+
 After this a reboot of the Yun is need
