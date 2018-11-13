@@ -41,15 +41,15 @@ Arduino Yun gateway between RTU and LPWAN network
 
 ### Setup on Yun arduino web panel
 
-Connect to http://arduino.local/cgi-bin/luci/webpanel/homepage with password
-Click on "Configure" then click on "advanced configuration panel"
+- Connect to http://arduino.local/cgi-bin/luci/webpanel/homepage with password. Click
+on "Configure" then click on "advanced configuration panel"
 
 
 ### Setup with advanced configuration panel (luci)
 
-In System > System set "Europe/Paris" to timezone.
+- In System > System set "Europe/Paris" to timezone.
 
-In System > Startup part "Local Startup", update rc.local content like this :
+- In System > Startup part "Local Startup", update rc.local content like this :
 
     # Put your custom commands here that should be executed once
     # the system init finished. By default this file does nothing.
@@ -71,6 +71,8 @@ In System > Startup part "Local Startup", update rc.local content like this :
     python /root/modbus2bridge.py
 
     exit 0
+
+- In Network > Interfaces define WAN eth1 to static IPv4 192.168.1.100 with 255.255.255.0 as mask.
 
 
 ### Copy/Update files
