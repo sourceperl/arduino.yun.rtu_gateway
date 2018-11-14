@@ -16,8 +16,9 @@ SERVER_PORT = 502
 
 # set vars
 th_lock = Lock()
-(ts, tm_1, tm_2) = (0, 0.0, 0.0)
-(j0_d, j0_m, jo_y, j0_l_h, j0_vol_j) = (0, 0, 0, [0xffffffff] * 24, 0xffffffff)
+ts = 0
+tm_1 = 0.0
+vol_c_1 = 0
 
 
 # some class
@@ -37,42 +38,37 @@ class FloatModbusClient(ModbusClient):
 
 # some function
 def polling_thread():
-    global ts, tm_1, tm_2
-    global j0_d, j0_m, jo_y, j0_l_h, j0_vol_j
+    global ts, tm_1, vol_c_1
+    # init modbus client
     c = FloatModbusClient(host=SERVER_HOST, port=SERVER_PORT, unit_id=0xFF, auto_open=True)
     # polling loop
     while True:
+        # read ts
         try:
-            # read ts
-            l_ts = c.read_holding_registers(28)
-            # read tm
-            l_tm = c.read_float(512, 2)
-            # read j0 volumes
-            l_vol = c.read_holding_registers(2048, 51)
-            # update global vars
+            _ts =  c.read_holding_registers(28)[0]
             with th_lock:
-                if l_ts:
-                    ts = l_ts[0]
-                if l_tm:
-                    tm_1 = l_tm[0]
-                    tm_2 = l_tm[1]
-                if l_vol:
-                    # j date
-                    reg_date =  l_vol[0]
-                    j0_y = (reg_date & 0b1111111000000000) >> 9
-                    j0_m = (reg_date & 0b0000000111100000) >> 5
-                    j0_d = (reg_date & 0b0000000000011111)
-                    # J0: vol_j0 and vol_j0_hx
-                    l_vol32 = utils.word_list_to_long(l_vol[1:])
-                    j0_l_h = l_vol32[0:24]
-                    j0_vol_j = l_vol32[24]
+                ts = _ts
+        except Exception as e:
+            traceback.print_exc(file=sys.stderr)
+        # read tm 1
+        try:
+            _tm_1 = c.read_float(512)[0]
+            with th_lock:
+                tm_1 = _tm_1
+        except Exception as e:
+            traceback.print_exc(file=sys.stderr)
+        # read gas corrected volume (gas volume converter 1)
+        try:
+            _vol_c_1 = utils.word_list_to_long(c.read_holding_registers(2634, 2))[0]
+            with th_lock:
+                vol_c_1 = _vol_c_1
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
         # 1s before next polling
         time.sleep(1.0)
 
 # some class
-class MySerial(serial.Serial):
+class ArduinoCommandSerial(serial.Serial):
     def send_cmd(self, cmd, echo=False):
         # flush rx buffer
         self.read(self.inWaiting())
@@ -96,16 +92,17 @@ if __name__ == "__main__":
     # allow time for thread start
     time.sleep(2.0)
 
-    s = MySerial("/dev/ttyATH0", baudrate=9600, timeout=5.0)
+    # init serial port
+    s = ArduinoCommandSerial("/dev/ttyATH0", baudrate=9600, timeout=5.0)
 
     while True:
         try:
-            # read system uptime in second
+            # read linux system uptime in second
             with open('/proc/uptime', 'r') as f:
                 uptime_s = int(float(f.readline().split()[0]))
             # format payload as hex str
             with th_lock:
-                payload = binascii.hexlify(struct.pack(">IHf", j0_vol_j, ts, tm_1))
+                payload = binascii.hexlify(struct.pack(">IHf", vol_c_1, ts, tm_1))
             s.send_cmd("set_pld %s" % payload, echo=True)
         except Exception as e:
             traceback.print_exc(file=sys.stderr)
