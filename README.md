@@ -49,7 +49,9 @@ on "Configure" then click on "advanced configuration panel"
 
 - In System > System set "Europe/Paris" to timezone.
 
-- In System > Startup part "Local Startup", update rc.local content like this :
+- In System > Startup part "Local Startup" :
+
+#### Update rc.local content like this :
 
     # Put your custom commands here that should be executed once
     # the system init finished. By default this file does nothing.
